@@ -14,18 +14,9 @@ const scenes = [];
 
 //init();
 const LoadAndAddNewProfiles = async(fileInput) => {
-    allArticleFunctions = [];
     await LoadNewProfiles(fileInput);
     setTimeout(
         ()=>{
-            //console.log(this);
-            for ( var i in window) {
-                //console.log(window[i]);
-                if((typeof window[i]).toString()=="function" && window[i].name.includes("article")){
-                    allArticleFunctions.push(window[i].name);
-                }
-            }
-            //console.log(allArticleFunctions);
             init();
         }, 1000);
 }
@@ -33,6 +24,7 @@ const LoadAndAddNewProfiles = async(fileInput) => {
 async function LoadNewProfiles(fileInput){
     return new Promise(async (resolve, reject) => {
         if(fileInput.files.length > 0){
+            allArticleFunctions = [];
             for(let f in fileInput.files){
                 if(fileInput.files[f].type == "text/javascript"){
                     //console.log("we have a js file");
@@ -67,6 +59,10 @@ function init() {
     ];
 
     const content = document.getElementById( 'content' );
+    // while (content.childElementCount > 2) { 
+    //     content.removeChild(content.lastChild); 
+        
+    // }    
     for ( let i = 0; i < allArticleFunctions.length; i ++ ) {
 
         const scene = new THREE.Scene();
@@ -86,7 +82,7 @@ function init() {
         scene.userData.element = sceneElement;
         content.appendChild( element );
         //console.log(sceneElement);
-        const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 1, 5000);
+        const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 1, 50000);
         //const camera = new THREE.PerspectiveCamera(50, 1, 1, 3000);
         camera.position.z = 1000;
         camera.position.y = 1950;
@@ -95,7 +91,8 @@ function init() {
 
         const controls = new OrbitControls( scene.userData.camera, scene.userData.element );
         controls.minDistance = .1;
-        controls.maxDistance = 2000;
+        controls.maxDistance = 1000;
+        controls.maxAzimuthAngle = 
         controls.enablePan = true;
         controls.enableZoom = true;
         scene.userData.controls = controls;
@@ -115,10 +112,31 @@ function init() {
                 new THREE.Vector3(0, 100, 0),
                 ], false, "centripetal", 0.5)
             });
-
+            console.log(shape);
+            let colorRed = 0;
+            let colorBlue = 0;
+            let colorGreen = 0;
+            if(shape.useMaterial == "ProfileAluminium"){
+                console.log("here");
+                colorRed = .9;
+                colorBlue = .1;
+                colorGreen = .1;
+            }
+            else if (shape.useMaterial == "ProfileIsolator"){
+                console.log("isolator");
+                colorRed = .1;
+                colorBlue = .1;
+                colorGreen = .9;
+            }
+            else if (shape.useMaterial == "ProfilePEFoam"){
+                console.log("foam");
+                colorRed = .1;
+                colorBlue = .9;
+                colorGreen = .1;
+            }
             const material = new THREE.MeshStandardMaterial( {
 
-                color: new THREE.Color().setHSL( Math.random(), 1, 0.75, THREE.SRGBColorSpace ),
+                color: new THREE.Color().setRGB( colorRed, colorBlue, colorGreen, THREE.SRGBColorSpace ),
                 roughness: 0.5,
                 metalness: 0,
                 side: THREE.DoubleSide,
@@ -136,6 +154,7 @@ function init() {
             center.y = 100;
             //console.log(center);
             controls.target = center;
+            controls.update();
         }
 
 
@@ -152,6 +171,10 @@ function init() {
         // } );
 
         scene.add( articleGroup );
+        scene.add(new THREE.AxesHelper(50));
+        const grid = new THREE.GridHelper( 10000, 100 );
+        grid.position.y = -1;
+        scene.add(grid);
 
         scene.add( new THREE.HemisphereLight( 0xaaaaaa, 0x444444, 3 ) );
 

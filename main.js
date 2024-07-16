@@ -88,7 +88,6 @@ function init() {
         camera.position.y = 1950;
         camera.position.x = -750;
         scene.userData.camera = camera;
-
         const controls = new OrbitControls( scene.userData.camera, scene.userData.element );
         controls.minDistance = .1;
         controls.maxDistance = 1000;
@@ -109,7 +108,7 @@ function init() {
                 bevelEnabled: false,
                 extrudePath: new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 100, 0),
+                new THREE.Vector3(0, 500, 0),
                 ], false, "centripetal", 0.5)
             });
             console.log(shape);
@@ -144,14 +143,14 @@ function init() {
     
             } );
             shapeMesh = new THREE.Mesh(geometry, material);
-            shapeMesh = CutAngle(shapeMesh, 100, [{Miters: [{Angle:45}]},{Miters: [{Angle:0}]}]);
+            shapeMesh = CutAngle(shapeMesh, 500, [{Miters: [{Angle:45}]},{Miters: [{Angle:0}]}]);
             articleGroup.add(shapeMesh);
             const bbox = new THREE.Box3();
             shapeMesh.geometry.computeBoundingBox();
             bbox.copy(shapeMesh.geometry.boundingBox).applyMatrix4(shapeMesh.matrixWorld);
             const center = new THREE.Vector3();
             bbox.getCenter(center);
-            center.y = 100;
+            center.y = 500;
             //console.log(center);
             controls.target = center;
             controls.update();

@@ -26,6 +26,7 @@ async function LoadNewProfiles(fileInput){
         if(fileInput.files.length > 0){
             allArticleFunctions = [];
             for(let f in fileInput.files){
+                console.log(fileInput.files[f].type);
                 if(fileInput.files[f].type == "text/javascript"){
                     //console.log("we have a js file");
                     let article = document.createElement('script');
@@ -40,6 +41,26 @@ async function LoadNewProfiles(fileInput){
                     document.body.appendChild(article);
                     //console.log(article);
                     import(article.src).then((funcs) => {for(let i in funcs){allArticleFunctions.push(funcs[i]) }});
+                }
+                else if(fileInput.files[f].type == "image/svg+xml"){
+                    let image = document.createElement('img');
+                    let s = await fileInput.files[f].text();
+                    image.src = URL.createObjectURL(new Blob([s], {type: "image/svg+xml" }));
+                    document.body.appendChild(image);
+
+                    // make a list item
+                    const element = document.createElement( 'div' );
+                    element.className = 'list-item';
+
+                    const sceneElement = document.createElement( 'div' );
+                    element.appendChild( image );
+
+                    const descriptionElement = document.createElement( 'div' );
+                    descriptionElement.innerText = fileInput.files[f].name;
+                    element.appendChild( descriptionElement );
+
+                    // the element that represents the area we want to render the scene
+                    content.appendChild( element );
                 }
             }
         }

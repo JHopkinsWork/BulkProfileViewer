@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import {GetThreeJS} from './GetThreeJS.ts';
 import CSG from "./three-csg.js"
 
 let allArticleFunctions = [];
+let allArticleNonFunctions = [];
 document.getElementById('myfile').onchange = function(e) {
     LoadAndAddNewProfiles(this);
 };
@@ -25,8 +27,8 @@ async function LoadNewProfiles(fileInput){
     return new Promise(async (resolve, reject) => {
         if(fileInput.files.length > 0){
             allArticleFunctions = [];
+            allArticleNonFunctions = [];
             for(let f in fileInput.files){
-                console.log(fileInput.files[f].type);
                 if(fileInput.files[f].type == "text/javascript"){
                     //console.log("we have a js file");
                     let article = document.createElement('script');
@@ -61,6 +63,19 @@ async function LoadNewProfiles(fileInput){
 
                     // the element that represents the area we want to render the scene
                     content.appendChild( element );
+                }
+                else if(fileInput.files[f].type == "text/plain"){
+                    //console.log("we have a js file");
+                    let article = document.createElement('script');
+
+                    let s = await fileInput.files[f].text();
+                    //console.log(s);
+                    s = JSON.parse(s);
+                    const test = GetThreeJS(s);
+                    //article.type = "module";
+                    //document.body.appendChild(article);
+                    //console.log(article);
+                    allArticleNonFunctions.push(test);
                 }
             }
         }
@@ -137,19 +152,135 @@ function init() {
             let colorBlue = 0;
             let colorGreen = 0;
             if(shape.useMaterial == "ProfileAluminium"){
-                console.log("here");
                 colorRed = .9;
                 colorBlue = .1;
                 colorGreen = .1;
             }
             else if (shape.useMaterial == "ProfileIsolator"){
-                console.log("isolator");
                 colorRed = .1;
                 colorBlue = .1;
                 colorGreen = .9;
             }
             else if (shape.useMaterial == "ProfilePEFoam"){
-                console.log("foam");
+                colorRed = .1;
+                colorBlue = .9;
+                colorGreen = .1;
+            }
+            const material = new THREE.MeshStandardMaterial( {
+
+                color: new THREE.Color().setRGB( colorRed, colorBlue, colorGreen, THREE.SRGBColorSpace ),
+                roughness: 0.5,
+                metalness: 0,
+                side: THREE.DoubleSide,
+                flatShading: true
+    
+            } );
+            shapeMesh = new THREE.Mesh(geometry, material);
+            shapeMesh = CutAngle(shapeMesh, 500, [{Miters: [{Angle:45}]},{Miters: [{Angle:0}]}]);
+            articleGroup.add(shapeMesh);
+            const bbox = new THREE.Box3();
+            shapeMesh.geometry.computeBoundingBox();
+            bbox.copy(shapeMesh.geometry.boundingBox).applyMatrix4(shapeMesh.matrixWorld);
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+            center.y = 500;
+            //console.log(center);
+            controls.target = center;
+            controls.update();
+        }
+
+
+        // add one random mesh to each scene
+        // const geometry = geometries[ geometries.length * Math.random() | 0 ];
+
+        // const material = new THREE.MeshStandardMaterial( {
+
+        //     color: new THREE.Color().setHSL( Math.random(), 1, 0.75, THREE.SRGBColorSpace ),
+        //     roughness: 0.5,
+        //     metalness: 0,
+        //     flatShading: true
+
+        // } );
+
+        scene.add( articleGroup );
+        scene.add(new THREE.AxesHelper(50));
+        const grid = new THREE.GridHelper( 10000, 100 );
+        grid.position.y = -1;
+        scene.add(grid);
+
+        scene.add( new THREE.HemisphereLight( 0xaaaaaa, 0x444444, 3 ) );
+
+        const light = new THREE.DirectionalLight( 0xffffff, 1.5 );
+        light.position.set( 1, 1, 1 );
+        scene.add( light );
+
+        scenes.push( scene );
+
+    }
+
+    for ( let i = 0; i < allArticleNonFunctions.length; i ++ ) {
+
+        const scene = new THREE.Scene();
+
+        // make a list item
+        const element = document.createElement( 'div' );
+        element.className = 'list-item';
+
+        const sceneElement = document.createElement( 'div' );
+        element.appendChild( sceneElement );
+
+        const descriptionElement = document.createElement( 'div' );
+        descriptionElement.innerText = allArticleNonFunctions[i].articleName;
+        element.appendChild( descriptionElement );
+
+        // the element that represents the area we want to render the scene
+        scene.userData.element = sceneElement;
+        content.appendChild( element );
+        //console.log(sceneElement);
+        const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 1, 50000);
+        //const camera = new THREE.PerspectiveCamera(50, 1, 1, 3000);
+        camera.position.z = 1000;
+        camera.position.y = 1950;
+        camera.position.x = -750;
+        scene.userData.camera = camera;
+        const controls = new OrbitControls( scene.userData.camera, scene.userData.element );
+        controls.minDistance = .1;
+        controls.maxDistance = 1000;
+        controls.maxAzimuthAngle = 
+        controls.enablePan = true;
+        controls.enableZoom = true;
+        scene.userData.controls = controls;
+
+        let article = allArticleNonFunctions[i];
+        const articleGroup = new THREE.Group();
+        let shapeMesh = null;
+        for (let k in article.profileShapes) {
+            let shapeObject = article.profileShapes[k];
+
+            let geometry = new THREE.ExtrudeGeometry(shapeObject.shape, {
+                steps: 2,
+                curveSegments: 2,
+                bevelEnabled: false,
+                extrudePath: new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 500, 0),
+                ], false, "centripetal", 0.5)
+            });
+            //console.log(shape);
+            let colorRed = 0;
+            let colorBlue = 0;
+            let colorGreen = 0;
+            if(shapeObject.useMaterial == "ProfileAluminium" || shapeObject.useMaterial == "Aluminum"){
+                colorRed = .9;
+                colorBlue = .1;
+                colorGreen = .1;
+            }
+            else if (shapeObject.useMaterial == "ProfileIsolator" || shapeObject.useMaterial == "Isolator"){
+                colorRed = .1;
+                colorBlue = .1;
+                colorGreen = .9;
+            }
+            else if (shapeObject.useMaterial == "ProfilePEFoam" || shapeObject.useMaterial == "Foam"){
                 colorRed = .1;
                 colorBlue = .9;
                 colorGreen = .1;
